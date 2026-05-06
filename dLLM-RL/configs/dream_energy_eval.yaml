@@ -1,0 +1,53 @@
+experiment:
+    project: "dream_energy_eval" # need to be same of this file name
+    num_node: 1 # the number of machines you have
+    node_index: 0 # no need to change
+
+
+model: "Your Diffusion Model Path/Dream-7B" # absolute path of your diffusion model
+model_base: "dream_energy"
+
+
+# dataset you want to eval on
+dataset:
+    data_dir: "Your Dataset Path"
+    eval_dataset: "GSM8K" #"MBPP""MATH500""GSM8K""AIME2024""GPQA""LiveCodeBench""HumanEval""LiveBench"
+    data_type: "math" #"code""math"
+
+execute:
+    num_chunk: 128
+
+# --- Energy-Based Model settings ---
+# The AR model provides a complementary autoregressive signal to guide
+# the diffusion model's sampling.  Dream uses the Qwen2.5 tokenizer,
+# so use Qwen-family AR models for tokenizer compatibility.
+energy:
+    ar_model_path: "Qwen/Qwen2.5-0.5B"  # lightweight proxy AR model
+    is_size: 2                           # number of x0 candidates to sample per step (k)
+    is_temp: 1.0                         # temperature for importance sampling (lower → sharper selection)
+    energy_type: "ar_rerank"             # "ar_rerank" (simple) or "invariant" (with intermediate xs)
+    energy_method: "default"             # "default" (full-block rerank) or "adaption" (trajectory-aware)
+    s_ratio: 0.5                         # for invariant: fraction of masks kept in xs
+    adaption_m: -1                       # for adaption: number of positions to unmask (-1 = auto = gen_length/steps)
+    ar_load_in_4bit: False               # set True to save GPU memory (needs bitsandbytes)
+    ar_load_in_8bit: False               # set True for moderate memory saving
+    energy_frequency: 1                  # apply energy every N denoising steps (increase for speed)
+    energy_fraction: 0.2                 # fraction of initial steps that use energy (e.g. 0.2 = first 20%)
+
+rollout:
+    num_response_per_task: 3
+    temperature: 0.1
+    alg_temp: 0
+    pad_target_penalty: 1.0
+    steps: 1024
+    max_gen_length: 1024
+    batch_size: 1                        # reduced from 2 since AR model uses extra memory
+    top_p: 0.95
+    top_k: 40
+    remasking_strategy: "low_confidence_static"
+    target: "confidence"
+    dynamic_threshold: 0.95
+    block_size: 32
+    further_horizon: 128
+    output_unmasking_history: True
+    use_cache: True
